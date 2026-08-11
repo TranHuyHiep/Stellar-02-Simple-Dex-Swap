@@ -1,0 +1,12 @@
+target/
+node_modules/
+dist/
+.env
+.env.local
+.stellar/
+test_snapshots/
+*.log
+.DS_Store
+frontend/e2e-result.png
+frontend/contract-error.png
+frontend/app.png

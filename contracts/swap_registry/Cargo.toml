@@ -1,0 +1,15 @@
+[package]
+name = "swap_registry"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = "23.0.2"
+
+[dev-dependencies]
+soroban-sdk = { version = "23.0.2", features = ["testutils"] }
