@@ -18,6 +18,19 @@ export const EXPLORER_CONTRACT = (id: string) =>
 /** Mirrors MAX_SLIPPAGE_BPS in the contract. */
 export const MAX_SLIPPAGE_BPS = 1000
 
+/**
+ * Mirrors MAX_AMOUNT in the contract (1e12 stroops), expressed in whole units
+ * of a 7-decimal asset.
+ */
+export const MAX_SWAP_AMOUNT = 100_000
+
+/** Mirrors MAX_ASSET_CODE_LEN in the contract. */
+export const MAX_ASSET_CODE_LEN = 12
+
+/** A Stellar asset code is 1-12 characters. */
+export const isValidAssetCode = (code: string): boolean =>
+  code.length > 0 && code.length <= MAX_ASSET_CODE_LEN
+
 export type TokenDef = {
   code: string
   issuer?: string

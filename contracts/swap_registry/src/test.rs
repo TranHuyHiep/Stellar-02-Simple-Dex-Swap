@@ -154,12 +154,12 @@ fn exact_slippage_floor_is_accepted() {
 // --- Pause -------------------------------------------------------------
 #[test]
 fn paused_registry_rejects_swaps() {
-    let (env, client, _admin) = setup();
+    let (env, client, admin) = setup();
     let user = Address::generate(&env);
     let xlm = SString::from_str(&env, "XLM");
     let usdc = SString::from_str(&env, "USDC");
 
-    client.set_paused(&true);
+    client.set_paused(&admin, &true);
     assert!(client.paused());
 
     let err = client
@@ -168,8 +168,98 @@ fn paused_registry_rejects_swaps() {
         .unwrap();
     assert_eq!(err, Error::RegistryPaused);
 
-    client.set_paused(&false);
+    client.set_paused(&admin, &false);
     assert_eq!(client.record_swap(&user, &xlm, &usdc, &100_0000000, &95_0000000), 1);
+}
+
+// --- Error type 4: amount ceiling ---------------------------------------
+#[test]
+fn amount_above_ceiling_is_rejected() {
+    let (env, client, _admin) = setup();
+    let user = Address::generate(&env);
+    let xlm = SString::from_str(&env, "XLM");
+    let usdc = SString::from_str(&env, "USDC");
+
+    let too_big = MAX_AMOUNT + 1;
+    let err = client
+        .try_record_swap(&user, &xlm, &usdc, &too_big, &(too_big * 95 / 100))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::AmountTooLarge);
+}
+
+#[test]
+fn amount_at_ceiling_is_accepted() {
+    let (env, client, _admin) = setup();
+    let user = Address::generate(&env);
+    let xlm = SString::from_str(&env, "XLM");
+    let usdc = SString::from_str(&env, "USDC");
+
+    // The boundary itself must pass.
+    let total = client.record_swap(&user, &xlm, &usdc, &MAX_AMOUNT, &(MAX_AMOUNT * 95 / 100));
+    assert_eq!(total, 1);
+}
+
+// --- Error type 5: asset code shape -------------------------------------
+#[test]
+fn empty_asset_code_is_rejected() {
+    let (env, client, _admin) = setup();
+    let user = Address::generate(&env);
+    let empty = SString::from_str(&env, "");
+    let usdc = SString::from_str(&env, "USDC");
+
+    let err = client
+        .try_record_swap(&user, &empty, &usdc, &100_0000000, &95_0000000)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::InvalidAsset);
+}
+
+#[test]
+fn overlong_asset_code_is_rejected() {
+    let (env, client, _admin) = setup();
+    let user = Address::generate(&env);
+    let xlm = SString::from_str(&env, "XLM");
+    // 13 characters, one past the Stellar maximum.
+    let overlong = SString::from_str(&env, "ABCDEFGHIJKLM");
+
+    let err = client
+        .try_record_swap(&user, &xlm, &overlong, &100_0000000, &95_0000000)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::InvalidAsset);
+}
+
+#[test]
+fn twelve_character_asset_code_is_accepted() {
+    let (env, client, _admin) = setup();
+    let user = Address::generate(&env);
+    let xlm = SString::from_str(&env, "XLM");
+    let max_len = SString::from_str(&env, "ABCDEFGHIJKL");
+
+    let total = client.record_swap(&user, &xlm, &max_len, &100_0000000, &95_0000000);
+    assert_eq!(total, 1);
+}
+
+// --- Error type 6: admin-only access ------------------------------------
+#[test]
+fn non_admin_cannot_pause() {
+    let (env, client, _admin) = setup();
+    let intruder = Address::generate(&env);
+
+    let err = client
+        .try_set_paused(&intruder, &true)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::Unauthorized);
+    assert!(!client.paused(), "registry must stay unpaused");
+}
+
+#[test]
+fn admin_can_pause() {
+    let (_env, client, admin) = setup();
+    client.set_paused(&admin, &true);
+    assert!(client.paused());
 }
 
 #[test]

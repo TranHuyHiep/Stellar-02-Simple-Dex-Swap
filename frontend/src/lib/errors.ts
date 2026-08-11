@@ -29,6 +29,9 @@ export const CONTRACT_ERRORS: Record<number, string> = {
   4: `Slippage too high — "minimum received" is below the registry's limit (max 10%).`,
   5: 'Identical assets — pick two different tokens to swap between.',
   6: 'Registry is paused by its admin. Swaps are temporarily disabled.',
+  7: 'Amount too large — this registry records at most 100,000 units per swap.',
+  8: 'Unauthorized — only the registry admin can perform that action.',
+  9: 'Invalid asset — asset codes must be 1–12 characters.',
 }
 
 const CONTRACT_ERROR_NAMES: Record<number, string> = {
@@ -38,6 +41,9 @@ const CONTRACT_ERROR_NAMES: Record<number, string> = {
   4: 'SlippageTooHigh',
   5: 'IdenticalAssets',
   6: 'RegistryPaused',
+  7: 'AmountTooLarge',
+  8: 'Unauthorized',
+  9: 'InvalidAsset',
 }
 
 /** Pull `Error(Contract, #N)` out of a Soroban host error string. */

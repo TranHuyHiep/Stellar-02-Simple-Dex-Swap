@@ -4,7 +4,15 @@ import { OrderBookView } from './components/OrderBookView'
 import { TxStatus, type TxState } from './components/TxStatus'
 import { EventFeed } from './components/EventFeed'
 import { WalletBar } from './components/WalletBar'
-import { TOKENS, assetKey, toAsset, type TokenDef, MAX_SLIPPAGE_BPS } from './lib/config'
+import {
+  TOKENS,
+  assetKey,
+  toAsset,
+  type TokenDef,
+  MAX_SLIPPAGE_BPS,
+  MAX_SWAP_AMOUNT,
+  isValidAssetCode,
+} from './lib/config'
 import {
   fetchBalances,
   fetchOrderBook,
@@ -254,8 +262,18 @@ export default function App() {
       setValidation('Enter an amount greater than zero.')
       return
     }
+    if (n > MAX_SWAP_AMOUNT) {
+      setValidation(
+        `Amount above the registry limit of ${MAX_SWAP_AMOUNT.toLocaleString()} ${sell.code}.`,
+      )
+      return
+    }
     if (assetKey(sell) === assetKey(buy)) {
       setValidation('Pick two different assets.')
+      return
+    }
+    if (!isValidAssetCode(sell.code) || !isValidAssetCode(buy.code)) {
+      setValidation('Asset codes must be 1–12 characters.')
       return
     }
     const bal = Number(balances[assetKey(sell)] ?? '0')
