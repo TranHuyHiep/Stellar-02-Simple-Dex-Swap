@@ -1,0 +1,97 @@
+name: Deploy contracts
+
+# Manual only. Deploying spends real funds and rotates the contract addresses
+# the frontend points at, so it should never be triggered by a push.
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Network to deploy to
+        type: choice
+        options: [testnet]
+        default: testnet
+      base_fee_bps:
+        description: Base fee in basis points
+        default: "30"
+      discount_fee_bps:
+        description: Discounted-tier fee in basis points
+        default: "10"
+
+concurrency:
+  # Never let two deploys race for the same identity's sequence number.
+  group: deploy-${{ inputs.network }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.network }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.network }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-deploy-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-deploy-
+
+      - name: Install Stellar CLI
+        run: |
+          set -euo pipefail
+          VERSION=23.1.4
+          URL="https://github.com/stellar/stellar-cli/releases/download/v${VERSION}/stellar-cli-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -sSfL "$URL" -o /tmp/stellar.tar.gz
+          tar xzf /tmp/stellar.tar.gz -C /tmp
+          install -m755 /tmp/stellar "$HOME/.cargo/bin/stellar"
+          stellar --version
+
+      - name: Test before deploying
+        run: cargo test --all
+
+      - name: Configure the deployer identity
+        env:
+          # Store this as an environment secret, scoped to the `testnet`
+          # environment so a deploy cannot borrow mainnet credentials.
+          DEPLOYER_SECRET: ${{ secrets.DEPLOYER_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOYER_SECRET:-}" ]; then
+            echo "::error::DEPLOYER_SECRET is not set for the ${{ inputs.network }} environment."
+            echo "Add it under Settings -> Environments -> ${{ inputs.network }} -> Secrets."
+            exit 1
+          fi
+          stellar keys add ci-deployer --secret-key <<< "$DEPLOYER_SECRET"
+          echo "Deployer: $(stellar keys address ci-deployer)"
+
+      - name: Deploy and link both contracts
+        env:
+          BASE_FEE_BPS: ${{ inputs.base_fee_bps }}
+          DISCOUNT_FEE_BPS: ${{ inputs.discount_fee_bps }}
+        run: ./scripts/deploy.sh "${{ inputs.network }}" ci-deployer
+
+      - name: Summarise the deployment
+        run: |
+          {
+            echo "### Deployed to ${{ inputs.network }}"
+            echo
+            echo '```json'
+            cat deployment.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload deployment record
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-${{ inputs.network }}
+          path: deployment.json
+          if-no-files-found: error

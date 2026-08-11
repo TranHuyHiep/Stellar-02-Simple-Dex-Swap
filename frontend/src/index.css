@@ -74,7 +74,65 @@ body {
 /* ---------- layout ---------- */
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
 .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+/* --- tablet: single column, swap form first ------------------------------ */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* --- phone -------------------------------------------------------------- */
+@media (max-width: 560px) {
+  .app { padding: 12px 12px 40px; }
+  .grid { gap: 14px; }
+  .col { gap: 14px; }
+  .card { padding: 14px; border-radius: 12px; }
+
+  .topbar { padding: 12px 14px; gap: 12px; }
+  .brand h1 { font-size: 16px; }
+  .brand-sub { font-size: 11px; }
+  .brand-mark { width: 34px; height: 34px; font-size: 17px; }
+
+  /* Stack the wallet controls and let them fill the row so they are easy to
+     hit, rather than crowding into a corner. */
+  .topbar-right { width: 100%; justify-content: space-between; }
+  .conn { width: 100%; }
+  .conn .btn { flex: 1; }
+  .conn-badge { flex: 1; min-width: 0; justify-content: center; }
+  .conn-badge span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .devkey-row { flex-direction: column; align-items: stretch; }
+  .devkey-row input { flex: none; width: 100%; }
+
+  /* 16px is the threshold below which iOS Safari zooms the page on focus. */
+  .field-row input { font-size: 22px; }
+  .devkey-row input, select { font-size: 16px; }
+
+  /* Comfortable touch targets (44px is the common minimum). */
+  .btn { min-height: 44px; }
+  .btn--sm { min-height: 34px; }
+  .flip { width: 40px; height: 40px; }
+  select { min-height: 40px; }
+
+  .quote-info { font-size: 12px; }
+  .ob-head, .ob-row { font-size: 11px; }
+  .ob-row { padding: 5px 6px; }
+  .feed-list { max-height: none; }
+  .steps { gap: 4px; }
+  .step { font-size: 11px; padding: 4px 7px; }
+}
+
+/* Respect the notch / home indicator on modern phones. */
+@supports (padding: max(0px)) {
+  .app {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 
 /* ---------- cards ---------- */
 .card {
@@ -232,6 +290,43 @@ select {
 .tx-links { display: flex; gap: 14px; margin-top: 10px; font-size: 12px; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* ---------- loading states ---------- */
+/* Skeleton rows stand in for content whose shape we already know, so the
+   layout does not jump once the data arrives. */
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--card-2) 25%,
+    color-mix(in srgb, var(--card-2) 60%, var(--line)) 37%,
+    var(--card-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.sk-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 10px; padding: 5px 8px; }
+.sk-cell { height: 11px; }
+.sk-feed { height: 46px; border-radius: 10px; margin-bottom: 8px; }
+
+.spinner {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -1px;
+}
+.spinner--sm { width: 10px; height: 10px; border-width: 1.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn .spinner { margin-right: 7px; border-top-color: #fff; border-color: rgba(255,255,255,.35); border-top-color: #fff; }
 
 /* ---------- event feed ---------- */
 .feed-sub { font-size: 12px; color: var(--muted); margin: -6px 0 12px; }

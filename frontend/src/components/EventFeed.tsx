@@ -11,18 +11,27 @@ export function EventFeed({
   latestLedger,
   error,
   self,
+  loading,
 }: {
   events: ContractEvent[]
   latestLedger: number | null
   error?: string | null
   self?: string
+  /** True until the first poll returns, so "empty" is not shown prematurely. */
+  loading?: boolean
 }) {
   return (
     <section className="card feed" aria-label="Contract event feed">
       <header className="card-head">
         <h2>Registry events</h2>
         <span className="pill pill--live">
-          {latestLedger ? `ledger ${latestLedger}` : 'connecting…'}
+          {latestLedger ? (
+            `ledger ${latestLedger}`
+          ) : (
+            <>
+              <span className="spinner spinner--sm" /> connecting
+            </>
+          )}
         </span>
       </header>
 
@@ -35,6 +44,12 @@ export function EventFeed({
 
       {error ? (
         <p className="error-text">{error}</p>
+      ) : loading && events.length === 0 ? (
+        <div aria-busy="true" aria-label="Loading events">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="skeleton sk-feed" key={i} />
+          ))}
+        </div>
       ) : events.length === 0 ? (
         <p className="ob-empty">
           No swaps recorded yet. Complete a swap to see its event appear here.
@@ -55,6 +70,11 @@ export function EventFeed({
               <div className="feed-meta">
                 <span title={e.user}>{short(e.user)}</span>
                 <span>min {e.minOut}</span>
+                {e.feeBps > 0 && (
+                  <span title="Quoted by the fee_vault contract">
+                    fee {e.feeAmount} ({e.feeBps}bps)
+                  </span>
+                )}
                 <span>ledger {e.ledger}</span>
               </div>
             </li>

@@ -18,6 +18,7 @@ export function SwapForm({
   onSubmit,
   submitLabel,
   validation,
+  busy,
 }: {
   sell: TokenDef
   buy: TokenDef
@@ -35,6 +36,8 @@ export function SwapForm({
   onSubmit: () => void
   submitLabel: string
   validation?: string | null
+  /** A swap is in flight; show a spinner on the submit button. */
+  busy?: boolean
 }) {
   const sellBal = balances[assetKey(sell)]
   const minReceived =
@@ -120,7 +123,11 @@ export function SwapForm({
       <div className="field">
         <div className="field-head">
           <label htmlFor="buy-amount">You receive (estimated)</label>
-          {quoting && <span className="muted">quoting…</span>}
+          {quoting && (
+            <span className="muted">
+              <span className="spinner spinner--sm" /> quoting
+            </span>
+          )}
         </div>
         <div className="field-row">
           <input
@@ -172,7 +179,9 @@ export function SwapForm({
         className="btn btn--primary btn--block"
         onClick={onSubmit}
         disabled={disabled}
+        aria-busy={busy ? true : undefined}
       >
+        {busy && <span className="spinner" />}
         {submitLabel}
       </button>
 

@@ -63,6 +63,7 @@ export default function App() {
   const [events, setEvents] = useState<ContractEvent[]>([])
   const [latestLedger, setLatestLedger] = useState<number | null>(null)
   const [feedError, setFeedError] = useState<string | null>(null)
+  const [feedLoading, setFeedLoading] = useState(true)
 
   const [totalSwaps, setTotalSwaps] = useState<number | null>(null)
   const [paused, setPaused] = useState<boolean | null>(null)
@@ -137,6 +138,10 @@ export default function App() {
         }
       } catch (e) {
         if (!cancelled) setFeedError(toSwapError(e).message)
+      } finally {
+        // After the first poll, an empty list means "no swaps yet" rather than
+        // "still loading", so the skeleton must stop either way.
+        if (!cancelled) setFeedLoading(false)
       }
     }
 
@@ -394,6 +399,7 @@ export default function App() {
             onSubmit={handleSwap}
             submitLabel={submitLabel}
             validation={validation ?? quoteError}
+            busy={busy}
           />
           <TxStatus state={tx} onDismiss={() => setTx({ phase: 'idle' })} />
         </div>
@@ -410,6 +416,7 @@ export default function App() {
             events={events}
             latestLedger={latestLedger}
             error={feedError}
+            loading={feedLoading}
             self={conn?.address}
           />
         </div>

@@ -28,6 +28,37 @@ function Row({
   )
 }
 
+/** Placeholder matching the real book's row grid, so nothing shifts on load. */
+function OrderBookSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading orderbook">
+      <div className="ob-head">
+        <span>Price</span>
+        <span>Amount</span>
+        <span>Total</span>
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div className="sk-row" key={`a${i}`}>
+          <span className="skeleton sk-cell" />
+          <span className="skeleton sk-cell" />
+          <span className="skeleton sk-cell" />
+        </div>
+      ))}
+      <div className="ob-mid">
+        <span className="skeleton sk-cell" style={{ width: 70 }} />
+        <span className="skeleton sk-cell" style={{ width: 90 }} />
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div className="sk-row" key={`b${i}`}>
+          <span className="skeleton sk-cell" />
+          <span className="skeleton sk-cell" />
+          <span className="skeleton sk-cell" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function OrderBookView({ book, loading, sellCode, buyCode, error }: Props) {
   const maxTotal = Math.max(
     book?.bids.at(-1)?.total ?? 0,
@@ -41,14 +72,20 @@ export function OrderBookView({ book, loading, sellCode, buyCode, error }: Props
           Orderbook <span className="muted">{sellCode}/{buyCode}</span>
         </h2>
         <span className="pill pill--live">
-          {loading ? 'refreshing…' : 'live from Horizon'}
+          {loading ? (
+            <>
+              <span className="spinner spinner--sm" /> refreshing
+            </>
+          ) : (
+            'live from Horizon'
+          )}
         </span>
       </header>
 
       {error ? (
         <p className="ob-empty error-text">{error}</p>
       ) : !book ? (
-        <p className="ob-empty">Loading orderbook…</p>
+        <OrderBookSkeleton />
       ) : book.bids.length === 0 && book.asks.length === 0 ? (
         <p className="ob-empty">
           No open orders for this pair on testnet. Try XLM/USDC.

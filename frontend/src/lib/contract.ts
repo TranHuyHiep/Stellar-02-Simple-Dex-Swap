@@ -288,6 +288,10 @@ export type ContractEvent = {
   amountIn: string
   minOut: string
   swapIndex: number
+  /** Fee rate the fee_vault quoted, in basis points. 0 when unlinked. */
+  feeBps: number
+  /** Absolute fee the vault quoted, in whole units. */
+  feeAmount: string
 }
 
 function decodeSwapEvent(
@@ -306,6 +310,9 @@ function decodeSwapEvent(
       amountIn: fromStroops(String(data.amount_in ?? '0')),
       minOut: fromStroops(String(data.min_out ?? '0')),
       swapIndex: Number(data.swap_index ?? 0),
+      // Present only on events emitted after the fee_vault was linked.
+      feeBps: Number(data.fee_bps ?? 0),
+      feeAmount: fromStroops(String(data.fee_amount ?? '0')),
     }
   } catch {
     return null

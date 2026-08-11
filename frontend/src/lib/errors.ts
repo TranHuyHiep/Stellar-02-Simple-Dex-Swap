@@ -109,7 +109,12 @@ export function toSwapError(e: unknown): SwapError {
       raw,
     )
   }
-  if (/op_underfunded|underfunded|insufficient/i.test(raw)) {
+  // Checked before the balance case: `tx_insufficient_fee` also contains
+  // "insufficient", so a looser balance pattern would swallow it.
+  if (/tx_insufficient_fee|insufficient_fee/i.test(raw)) {
+    return new SwapError('network', 'Network fee too low for current traffic. Retry.', raw)
+  }
+  if (/op_underfunded|underfunded|insufficient balance|insufficient funds/i.test(raw)) {
     return new SwapError('network', 'Insufficient balance for this swap (including fees).', raw)
   }
   if (/tx_bad_seq|txBadSeq/i.test(raw)) {
@@ -125,9 +130,6 @@ export function toSwapError(e: unknown): SwapError {
       'The network has not indexed your account yet. Wait a few seconds and retry.',
       raw,
     )
-  }
-  if (/tx_insufficient_fee|insufficient_fee/i.test(raw)) {
-    return new SwapError('network', 'Network fee too low for current traffic. Retry.', raw)
   }
   if (/op_too_few_offers|too_few_offers/i.test(raw)) {
     return new SwapError(
