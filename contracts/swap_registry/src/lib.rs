@@ -1,7 +1,28 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, String, Vec,
+    contract, contractclient, contracterror, contractevent, contractimpl, contracttype, Address,
+    Env, String, Vec,
 };
+
+/// The slice of `fee_vault` this registry depends on.
+///
+/// Declaring the interface rather than importing the whole crate keeps the two
+/// contracts independently deployable: the registry only needs to agree on
+/// these signatures, not share a build with the vault.
+#[contractclient(name = "FeeVaultClient")]
+pub trait FeeVaultInterface {
+    fn quote_fee(env: Env, user: Address, amount: i128) -> FeeQuote;
+    fn accrue(env: Env, caller: Address, user: Address, amount: i128, asset: String) -> i128;
+}
+
+/// Mirrors `fee_vault::FeeQuote`. The XDR layout must match field-for-field.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FeeQuote {
+    pub bps: u32,
+    pub amount: i128,
+    pub discounted: bool,
+}
 
 /// Maximum slippage the registry will ever accept, in basis points (10%).
 const MAX_SLIPPAGE_BPS: u32 = 1_000;
@@ -37,6 +58,8 @@ pub enum Error {
     Unauthorized = 8,
     /// An asset code was empty or longer than MAX_ASSET_CODE_LEN.
     InvalidAsset = 9,
+    /// The fee vault has not been linked yet, so fees cannot be quoted.
+    VaultNotSet = 10,
 }
 
 /// Emitted for every accepted swap. The frontend streams these to build its
@@ -51,6 +74,10 @@ pub struct SwapEvent {
     pub amount_in: i128,
     pub min_out: i128,
     pub swap_index: u32,
+    /// Fee in basis points the vault charged, or 0 when no vault is linked.
+    pub fee_bps: u32,
+    /// Absolute fee in stroops, as quoted by the vault.
+    pub fee_amount: i128,
 }
 
 /// Emitted when the admin flips the pause switch.
@@ -81,6 +108,9 @@ enum DataKey {
     TotalSwaps,
     UserCount(Address),
     History(Address),
+    /// Address of the `fee_vault` contract this registry delegates fee policy
+    /// and volume accounting to. Optional: unset means fees are skipped.
+    FeeVault,
 }
 
 #[contract]
@@ -170,6 +200,14 @@ impl SwapRegistry {
             return Err(Error::SlippageTooHigh);
         }
 
+        // --- Cross-contract: delegate fee policy to the vault --------------
+        // The vault owns the fee schedule and the per-account volume tiers, so
+        // the registry asks it rather than duplicating that logic. `accrue`
+        // returns the account's new running volume, which we surface on the
+        // swap event. The vault authorises the call against this contract's own
+        // address, so no user signature is involved beyond the outer one.
+        let fee = Self::apply_fees(&env, &user, amount_in, &sell_asset)?;
+
         // --- Persist -------------------------------------------------------
         let total: u32 = env
             .storage()
@@ -218,6 +256,8 @@ impl SwapRegistry {
             amount_in,
             min_out,
             swap_index: total,
+            fee_bps: fee.as_ref().map(|f| f.bps).unwrap_or(0),
+            fee_amount: fee.as_ref().map(|f| f.amount).unwrap_or(0),
         }
         .publish(&env);
 
@@ -258,6 +298,41 @@ impl SwapRegistry {
 
     /// Admin-only pause switch, used to demonstrate the RegistryPaused error.
     ///
+    /// Link the `fee_vault` this registry delegates fee policy to.
+    ///
+    /// Admin-only. The vault must separately register this registry via its own
+    /// `set_registry`, so the trust is mutual rather than one-sided.
+    pub fn set_fee_vault(env: Env, caller: Address, vault: Address) -> Result<(), Error> {
+        caller.require_auth();
+
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(Error::NotInitialized)?;
+        if caller != admin {
+            return Err(Error::Unauthorized);
+        }
+
+        env.storage().instance().set(&DataKey::FeeVault, &vault);
+        Ok(())
+    }
+
+    pub fn fee_vault(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::FeeVault)
+    }
+
+    /// Ask the linked vault what `user` would pay on `amount`.
+    /// Errors with `VaultNotSet` when no vault is linked.
+    pub fn preview_fee(env: Env, user: Address, amount: i128) -> Result<FeeQuote, Error> {
+        let vault: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::FeeVault)
+            .ok_or(Error::VaultNotSet)?;
+        Ok(FeeVaultClient::new(&env, &vault).quote_fee(&user, &amount))
+    }
+
     /// `caller` is checked against the stored admin so a non-admin gets the
     /// typed `Unauthorized` error instead of an untyped auth panic.
     pub fn set_paused(env: Env, caller: Address, value: bool) -> Result<(), Error> {
@@ -285,6 +360,35 @@ impl SwapRegistry {
     fn is_valid_asset_code(code: &String) -> bool {
         let len = code.len();
         len > 0 && len <= MAX_ASSET_CODE_LEN
+    }
+
+    /// Quote and accrue this swap's fee through the linked `fee_vault`.
+    ///
+    /// Returns `None` when no vault is linked, which keeps the registry usable
+    /// standalone: fee accounting is an enhancement, not a prerequisite for
+    /// recording a swap.
+    fn apply_fees(
+        env: &Env,
+        user: &Address,
+        amount_in: i128,
+        sell_asset: &String,
+    ) -> Result<Option<FeeQuote>, Error> {
+        let vault: Option<Address> = env.storage().instance().get(&DataKey::FeeVault);
+        let Some(vault) = vault else {
+            return Ok(None);
+        };
+
+        let client = FeeVaultClient::new(env, &vault);
+        let quote = client.quote_fee(user, &amount_in);
+        // The vault checks that `caller` is this registry, so pass our own
+        // contract address rather than the user's.
+        client.accrue(
+            &env.current_contract_address(),
+            user,
+            &amount_in,
+            sell_asset,
+        );
+        Ok(Some(quote))
     }
 }
 

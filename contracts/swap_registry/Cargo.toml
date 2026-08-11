@@ -13,3 +13,7 @@ soroban-sdk = "23.0.2"
 
 [dev-dependencies]
 soroban-sdk = { version = "23.0.2", features = ["testutils"] }
+# Only for the cross-contract integration tests: they register the real vault
+# in the test host rather than a stub, so the two contracts are exercised
+# together exactly as they are on-chain.
+fee_vault = { path = "../fee_vault" }

@@ -3,17 +3,17 @@
   "networkPassphrase": "Test SDF Network ; September 2015",
   "rpcUrl": "https://soroban-testnet.stellar.org",
   "horizonUrl": "https://horizon-testnet.stellar.org",
-  "contractId": "CDYQ4AGHIHHHTRYN36FKXZM53VAGFD4NGMUZLOM4XPRTRZMEQPZC3BEY",
-  "wasmHash": "6554bca241ccc60a778f893200dfbd5f0728e57e6249afb07c9048c5033f6e61",
+  "contracts": {
+    "swap_registry": "CD3QTWMRPZCVCKYRLT6EDLBBLLLRKAR7WXXBJSRGX73B65FA7C4EPOFH",
+    "fee_vault": "CAIGJ2FLWFDBDTEQILJIO32UGSQP5SJRI7ZON6XFI5JBGJDB657ZQ5AX"
+  },
   "admin": "GCZ2VHJ5X44SFOTKOOFX4LYL2YK242USUW43NTCK2ODQ3MODX2O4CZB4",
-  "deployTxHash": "612d368c71986b124d3fc8fc666327dd9f4920a2170d0179ec894af941489b72",
-  "explorer": "https://stellar.expert/explorer/testnet/contract/CDYQ4AGHIHHHTRYN36FKXZM53VAGFD4NGMUZLOM4XPRTRZMEQPZC3BEY",
-  "verifiedOnChain": {
-    "initialize": "success (tx a05c35924b92ac54c14552f8fff20b2a32f8d5b1de06afd462808701797c01b4)",
-    "recordSwap": "success (tx d59f760f027c55a800df3010b8e76cbd0b8bab98a8f5b5e3a4e84927e1bdc956), SwapEvent emitted",
-    "errorAlreadyInitialized": "Error(Contract, #2)",
-    "errorInvalidAmount": "Error(Contract, #3)",
-    "errorSlippageTooHigh": "Error(Contract, #4)",
-    "errorIdenticalAssets": "Error(Contract, #5)"
+  "feePolicy": {
+    "baseFeeBps": 30,
+    "discountFeeBps": 10
+  },
+  "explorer": {
+    "swap_registry": "https://stellar.expert/explorer/testnet/contract/CD3QTWMRPZCVCKYRLT6EDLBBLLLRKAR7WXXBJSRGX73B65FA7C4EPOFH",
+    "fee_vault": "https://stellar.expert/explorer/testnet/contract/CAIGJ2FLWFDBDTEQILJIO32UGSQP5SJRI7ZON6XFI5JBGJDB657ZQ5AX"
   }
 }
