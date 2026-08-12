@@ -20,7 +20,7 @@ page.on('console', (m) => {
 })
 page.on('pageerror', (e) => errors.push(e.message))
 
-await page.goto(URL, { waitUntil: 'networkidle', timeout: 60000 })
+await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 })
 await page.waitForSelector('h1')
 
 // --- connect: generate a Friendbot-funded testnet key -------------------

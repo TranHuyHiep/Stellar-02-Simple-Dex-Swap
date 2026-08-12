@@ -27,14 +27,38 @@ export const FRIENDBOT_URL = env('VITE_FRIENDBOT_URL', 'https://friendbot-testne
 /** Deployed swap_registry contract (see deployment.json at the repo root). */
 export const CONTRACT_ID = env(
   'VITE_CONTRACT_ID',
-  'CD3QTWMRPZCVCKYRLT6EDLBBLLLRKAR7WXXBJSRGX73B65FA7C4EPOFH',
+  'CCRQPERNC67KO2QLWDUAGBC5GAGL5JEC4HCM5HQIXVCXT7QU7FQLZGMM',
 )
 
 /** Deployed fee_vault contract the registry delegates fee policy to. */
 export const FEE_VAULT_ID = env(
   'VITE_FEE_VAULT_ID',
-  'CAIGJ2FLWFDBDTEQILJIO32UGSQP5SJRI7ZON6XFI5JBGJDB657ZQ5AX',
+  'CC6AATAR2D2M6J6BQL6E7DXNS25THEVX76363DSPCFNKG2Y3U6J3IUY4',
 )
+
+/** Deployed nft_collection contract. */
+export const NFT_COLLECTION_ID = env(
+  'VITE_NFT_COLLECTION_ID',
+  'CBMIQ343QRVOUGXE7OUPCZNNYGWBDWMS56UALN5NIHWZALN6IDYYYEUV',
+)
+
+/** Deployed nft_pool contract that custodies NFTs. */
+export const NFT_POOL_ID = env(
+  'VITE_NFT_POOL_ID',
+  'CBADR5KPKYFMMMMOUWYIZXZ4NZGRWTNPJEUQN6OLGU52OLWALT2CKTZG',
+)
+
+/**
+ * IPFS pinning. Without a JWT the mint page still works: the CID is derived
+ * locally from the file's bytes and the image previews from a blob URL, but
+ * nothing is pinned. See lib/ipfs.ts.
+ */
+export const PINATA_JWT = env('VITE_PINATA_JWT', '')
+export const IPFS_GATEWAY = env('VITE_IPFS_GATEWAY', 'https://gateway.pinata.cloud/ipfs')
+
+/** Mirrors the bounds in nft_collection. */
+export const NFT_MAX_NAME_LEN = 64
+export const NFT_MAX_DESC_LEN = 256
 
 export const EXPLORER_TX = (hash: string) =>
   `https://stellar.expert/explorer/${NETWORK}/tx/${hash}`

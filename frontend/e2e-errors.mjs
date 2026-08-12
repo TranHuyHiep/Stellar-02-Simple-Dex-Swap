@@ -13,7 +13,7 @@ const browser = await chromium.launch()
 async function newPage() {
   const page = await browser.newPage()
   page.setDefaultTimeout(240_000)
-  await page.goto(URL, { waitUntil: 'networkidle', timeout: 60000 })
+  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 })
   await page.waitForSelector('h1')
   return page
 }

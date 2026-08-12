@@ -1,51 +1,43 @@
-import { useState } from 'react'
-import type { Connection } from '../lib/wallet'
+import { useState, type ReactNode } from 'react'
+import { NavLink } from 'react-router-dom'
+import { useWallet } from '../useWallet'
 
 function short(addr: string) {
   return `${addr.slice(0, 5)}…${addr.slice(-5)}`
 }
 
-export function WalletBar({
-  conn,
-  paused,
-  totalSwaps,
-  onConnect,
-  onDisconnect,
-  onDevKey,
-  onCreateDevKey,
-  busy,
-}: {
-  conn: Connection | null
-  paused: boolean | null
-  totalSwaps: number | null
-  onConnect: () => void
-  onDisconnect: () => void
-  onDevKey: (secret: string) => void
-  onCreateDevKey: () => void
-  busy?: boolean
-}) {
+/**
+ * Shared header: brand, page nav, per-page stats slot, and the wallet controls.
+ * The connection itself lives in WalletContext so it survives navigation.
+ */
+export function WalletBar({ stats }: { stats?: ReactNode }) {
+  const { conn, busy, error, connect, disconnect, applyDevKey, createDevKey } = useWallet()
   const [showDev, setShowDev] = useState(false)
   const [secret, setSecret] = useState('')
 
   return (
     <header className="topbar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">⇄</span>
+        <span className="brand-mark" aria-hidden="true">
+          ⇄
+        </span>
         <div>
-          <h1>Stellar DEX Swap</h1>
-          <p className="brand-sub">
-            testnet · orderbook swaps recorded by a Soroban registry
-          </p>
+          <h1>Stellar Studio</h1>
+          <p className="brand-sub">testnet · DEX swaps and NFT minting on Soroban</p>
         </div>
       </div>
 
+      <nav className="nav" aria-label="Pages">
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-link nav-link--on' : 'nav-link')}>
+          Swap
+        </NavLink>
+        <NavLink to="/mint" className={({ isActive }) => (isActive ? 'nav-link nav-link--on' : 'nav-link')}>
+          Mint NFT
+        </NavLink>
+      </nav>
+
       <div className="topbar-right">
-        <div className="stats">
-          <span className="stat">
-            <em>{totalSwaps ?? '—'}</em> swaps recorded
-          </span>
-          {paused && <span className="pill pill--warn">registry paused</span>}
-        </div>
+        {stats && <div className="stats">{stats}</div>}
 
         {conn ? (
           <div className="conn">
@@ -53,13 +45,19 @@ export function WalletBar({
               <span className="dot" /> {short(conn.address)}
               {conn.walletName ? ` · ${conn.walletName}` : ''}
             </span>
-            <button className="btn btn--ghost" onClick={onDisconnect}>
+            <button className="btn btn--ghost" onClick={() => void disconnect()}>
               Disconnect
             </button>
           </div>
         ) : (
           <div className="conn">
-            <button className="btn btn--primary" onClick={onConnect} disabled={busy}>
+            <button
+              className="btn btn--primary"
+              onClick={() => void connect()}
+              disabled={busy}
+              aria-busy={busy ? true : undefined}
+            >
+              {busy && <span className="spinner" />}
               Connect wallet
             </button>
             <button
@@ -88,15 +86,24 @@ export function WalletBar({
             />
             <button
               className="btn btn--primary"
-              onClick={() => onDevKey(secret)}
+              onClick={() => applyDevKey(secret)}
               disabled={!secret || busy}
             >
               Use key
             </button>
-            <button className="btn btn--ghost" onClick={onCreateDevKey} disabled={busy}>
+            <button
+              className="btn btn--ghost"
+              onClick={() => void createDevKey()}
+              disabled={busy}
+            >
               {busy ? 'Funding…' : 'Create + fund'}
             </button>
           </div>
+          {error && (
+            <p className="error-text" role="alert">
+              {error.message}
+            </p>
+          )}
         </div>
       )}
     </header>

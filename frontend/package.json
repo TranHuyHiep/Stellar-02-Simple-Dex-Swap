@@ -12,13 +12,15 @@
     "test:run": "vitest run",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "e2e:swap": "node e2e-swap.mjs",
-    "e2e:errors": "node e2e-errors.mjs"
+    "e2e:errors": "node e2e-errors.mjs",
+    "e2e:mint": "node e2e-mint.mjs"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.5.0",
     "@stellar/stellar-sdk": "^16.2.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

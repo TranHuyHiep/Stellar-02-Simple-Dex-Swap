@@ -5,6 +5,7 @@ export type TxPhase =
   | 'idle'
   | 'validating'
   | 'quoting'
+  | 'uploading'
   | 'trustline'
   | 'contract'
   | 'dex'
@@ -34,6 +35,7 @@ const STEPS: { key: TxPhase; label: string }[] = [
 const ORDER: TxPhase[] = [
   'idle',
   'validating',
+  'uploading',
   'quoting',
   'trustline',
   'contract',
@@ -47,7 +49,16 @@ function rank(p: TxPhase): number {
   return i === -1 ? 0 : i
 }
 
-export function TxStatus({ state, onDismiss }: { state: TxState; onDismiss: () => void }) {
+export function TxStatus({
+  state,
+  onDismiss,
+  simple,
+}: {
+  state: TxState
+  onDismiss: () => void
+  /** Hide the swap-specific step tracker; used by pages with fewer stages. */
+  simple?: boolean
+}) {
   if (state.phase === 'idle') return null
 
   const isError = state.phase === 'error'
@@ -66,7 +77,7 @@ export function TxStatus({ state, onDismiss }: { state: TxState; onDismiss: () =
         </button>
       </header>
 
-      {!isError && (
+      {!isError && !simple && (
         <ol className="steps">
           {STEPS.map((s) => {
             const r = rank(s.key)
@@ -85,7 +96,11 @@ export function TxStatus({ state, onDismiss }: { state: TxState; onDismiss: () =
         </ol>
       )}
 
-      {state.message && !isError && <p className="tx-msg">{state.message}</p>}
+      {/* On success the message is rendered below in its own styling, so skip
+          it here to avoid printing it twice. */}
+      {state.message && !isError && state.phase !== 'success' && (
+        <p className="tx-msg">{state.message}</p>
+      )}
 
       {isError && state.error && (
         <div className="tx-error">
@@ -105,11 +120,17 @@ export function TxStatus({ state, onDismiss }: { state: TxState; onDismiss: () =
 
       {state.phase === 'success' && (
         <p className="tx-msg tx-msg--ok">
-          Swapped successfully
-          {state.received && state.receivedCode
-            ? ` — received ≈ ${state.received} ${state.receivedCode}`
-            : ''}
-          {state.swapIndex ? ` (registry swap #${state.swapIndex})` : ''}.
+          {/* Pages that set their own message keep it; the swap flow falls
+              back to describing what it received. */}
+          {state.message ?? (
+            <>
+              Swapped successfully
+              {state.received && state.receivedCode
+                ? ` — received ≈ ${state.received} ${state.receivedCode}`
+                : ''}
+              {state.swapIndex ? ` (registry swap #${state.swapIndex})` : ''}.
+            </>
+          )}
         </p>
       )}
 
