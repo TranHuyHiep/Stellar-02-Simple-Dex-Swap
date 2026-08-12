@@ -41,8 +41,11 @@ log "Building contracts"
 stellar contract build >/dev/null
 REGISTRY_WASM="target/wasm32v1-none/release/swap_registry.wasm"
 VAULT_WASM="target/wasm32v1-none/release/fee_vault.wasm"
-[[ -f "$REGISTRY_WASM" ]] || die "missing $REGISTRY_WASM"
-[[ -f "$VAULT_WASM" ]] || die "missing $VAULT_WASM"
+NFT_WASM="target/wasm32v1-none/release/nft_collection.wasm"
+POOL_WASM="target/wasm32v1-none/release/nft_pool.wasm"
+for w in "$REGISTRY_WASM" "$VAULT_WASM" "$NFT_WASM" "$POOL_WASM"; do
+  [[ -f "$w" ]] || die "missing $w"
+done
 
 # --- deploy -----------------------------------------------------------------
 # `stellar contract deploy` installs the wasm and creates the instance. The
@@ -86,9 +89,13 @@ deploy() {
 }
 
 VAULT_ID="$(deploy "$VAULT_WASM" fee_vault)"
-log "fee_vault:      $VAULT_ID"
+log "fee_vault:       $VAULT_ID"
 REGISTRY_ID="$(deploy "$REGISTRY_WASM" swap_registry)"
-log "swap_registry:  $REGISTRY_ID"
+log "swap_registry:   $REGISTRY_ID"
+NFT_ID="$(deploy "$NFT_WASM" nft_collection)"
+log "nft_collection:  $NFT_ID"
+POOL_ID="$(deploy "$POOL_WASM" nft_pool)"
+log "nft_pool:        $POOL_ID"
 
 # Invoke a contract function, retrying while the RPC has not caught up to the
 # ledger that created or last touched the contract.
@@ -123,21 +130,39 @@ invoke "$VAULT_ID" initialize --admin "$ADMIN" \
 log "Initializing swap_registry"
 invoke "$REGISTRY_ID" initialize --admin "$ADMIN" >/dev/null
 
-# --- link the two contracts -------------------------------------------------
-log "Linking registry -> vault"
+log "Initializing nft_collection"
+invoke "$NFT_ID" initialize --admin "$ADMIN" >/dev/null
+
+log "Initializing nft_pool"
+invoke "$POOL_ID" initialize --admin "$ADMIN" >/dev/null
+
+# --- link the contract pairs ------------------------------------------------
+# Each link is one-directional and admin-gated, so both sides must opt in
+# before a cross-contract call is accepted.
+log "Linking swap_registry <-> fee_vault"
 invoke "$REGISTRY_ID" set_fee_vault --caller "$ADMIN" --vault "$VAULT_ID" >/dev/null
-log "Authorizing registry in the vault"
 invoke "$VAULT_ID" set_registry --registry "$REGISTRY_ID" >/dev/null
 
+log "Linking nft_collection <-> nft_pool"
+invoke "$NFT_ID" set_pool --caller "$ADMIN" --pool "$POOL_ID" >/dev/null
+invoke "$POOL_ID" set_collection --caller "$ADMIN" --collection "$NFT_ID" >/dev/null
+
 # --- verify -----------------------------------------------------------------
-log "Verifying the link"
+log "Verifying the links"
 LINKED_VAULT="$(invoke "$REGISTRY_ID" fee_vault | tr -d '"')"
 LINKED_REG="$(invoke "$VAULT_ID" registry | tr -d '"')"
 [[ "$LINKED_VAULT" == "$VAULT_ID" ]] || die "registry points at $LINKED_VAULT, expected $VAULT_ID"
 [[ "$LINKED_REG" == "$REGISTRY_ID" ]] || die "vault points at $LINKED_REG, expected $REGISTRY_ID"
 
+LINKED_POOL="$(invoke "$NFT_ID" pool | tr -d '"')"
+LINKED_COLL="$(invoke "$POOL_ID" collection | tr -d '"')"
+[[ "$LINKED_POOL" == "$POOL_ID" ]] || die "collection points at $LINKED_POOL, expected $POOL_ID"
+[[ "$LINKED_COLL" == "$NFT_ID" ]] || die "pool points at $LINKED_COLL, expected $NFT_ID"
+
 FEE_PREVIEW="$(invoke "$REGISTRY_ID" preview_fee --user "$ADMIN" --amount 1000000000)"
 log "preview_fee(100 units) -> $FEE_PREVIEW"
+log "nft total_supply       -> $(invoke "$NFT_ID" total_supply)"
+log "nft_pool size          -> $(invoke "$POOL_ID" size)"
 
 case "$NETWORK" in
   testnet)  PASSPHRASE="Test SDF Network ; September 2015"
@@ -157,6 +182,8 @@ jq -n \
   --arg horizon "$HORIZON" \
   --arg registry "$REGISTRY_ID" \
   --arg vault "$VAULT_ID" \
+  --arg nft "$NFT_ID" \
+  --arg pool "$POOL_ID" \
   --arg admin "$ADMIN" \
   --argjson baseFee "$BASE_FEE_BPS" \
   --argjson discountFee "$DISCOUNT_FEE_BPS" \
@@ -167,13 +194,17 @@ jq -n \
     horizonUrl: $horizon,
     contracts: {
       swap_registry: $registry,
-      fee_vault: $vault
+      fee_vault: $vault,
+      nft_collection: $nft,
+      nft_pool: $pool
     },
     admin: $admin,
     feePolicy: { baseFeeBps: $baseFee, discountFeeBps: $discountFee },
     explorer: {
       swap_registry: "https://stellar.expert/explorer/\($network)/contract/\($registry)",
-      fee_vault: "https://stellar.expert/explorer/\($network)/contract/\($vault)"
+      fee_vault: "https://stellar.expert/explorer/\($network)/contract/\($vault)",
+      nft_collection: "https://stellar.expert/explorer/\($network)/contract/\($nft)",
+      nft_pool: "https://stellar.expert/explorer/\($network)/contract/\($pool)"
     }
   }' > "$OUT"
 
@@ -187,4 +218,6 @@ Next: point the frontend at these addresses.
   frontend/.env.local
     VITE_CONTRACT_ID=$REGISTRY_ID
     VITE_FEE_VAULT_ID=$VAULT_ID
+    VITE_NFT_COLLECTION_ID=$NFT_ID
+    VITE_NFT_POOL_ID=$POOL_ID
 EOF

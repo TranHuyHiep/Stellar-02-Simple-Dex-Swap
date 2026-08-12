@@ -4,8 +4,10 @@
   "rpcUrl": "https://soroban-testnet.stellar.org",
   "horizonUrl": "https://horizon-testnet.stellar.org",
   "contracts": {
-    "swap_registry": "CD3QTWMRPZCVCKYRLT6EDLBBLLLRKAR7WXXBJSRGX73B65FA7C4EPOFH",
-    "fee_vault": "CAIGJ2FLWFDBDTEQILJIO32UGSQP5SJRI7ZON6XFI5JBGJDB657ZQ5AX"
+    "swap_registry": "CCRQPERNC67KO2QLWDUAGBC5GAGL5JEC4HCM5HQIXVCXT7QU7FQLZGMM",
+    "fee_vault": "CC6AATAR2D2M6J6BQL6E7DXNS25THEVX76363DSPCFNKG2Y3U6J3IUY4",
+    "nft_collection": "CBMIQ343QRVOUGXE7OUPCZNNYGWBDWMS56UALN5NIHWZALN6IDYYYEUV",
+    "nft_pool": "CBADR5KPKYFMMMMOUWYIZXZ4NZGRWTNPJEUQN6OLGU52OLWALT2CKTZG"
   },
   "admin": "GCZ2VHJ5X44SFOTKOOFX4LYL2YK242USUW43NTCK2ODQ3MODX2O4CZB4",
   "feePolicy": {
@@ -13,7 +15,9 @@
     "discountFeeBps": 10
   },
   "explorer": {
-    "swap_registry": "https://stellar.expert/explorer/testnet/contract/CD3QTWMRPZCVCKYRLT6EDLBBLLLRKAR7WXXBJSRGX73B65FA7C4EPOFH",
-    "fee_vault": "https://stellar.expert/explorer/testnet/contract/CAIGJ2FLWFDBDTEQILJIO32UGSQP5SJRI7ZON6XFI5JBGJDB657ZQ5AX"
+    "swap_registry": "https://stellar.expert/explorer/testnet/contract/CCRQPERNC67KO2QLWDUAGBC5GAGL5JEC4HCM5HQIXVCXT7QU7FQLZGMM",
+    "fee_vault": "https://stellar.expert/explorer/testnet/contract/CC6AATAR2D2M6J6BQL6E7DXNS25THEVX76363DSPCFNKG2Y3U6J3IUY4",
+    "nft_collection": "https://stellar.expert/explorer/testnet/contract/CBMIQ343QRVOUGXE7OUPCZNNYGWBDWMS56UALN5NIHWZALN6IDYYYEUV",
+    "nft_pool": "https://stellar.expert/explorer/testnet/contract/CBADR5KPKYFMMMMOUWYIZXZ4NZGRWTNPJEUQN6OLGU52OLWALT2CKTZG"
   }
 }
